@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import dotenv from "dotenv";
 import fastifyFormBody from "@fastify/formbody";
 import fastifyWs from "@fastify/websocket";
-import Twilio  from 'twilio';
+import Twilio from "twilio";
 // Load environment variables from .env file
 dotenv.config();
 
@@ -156,7 +156,10 @@ const SHOW_TIMING_MATH = false;
 
 // Root Route
 fastify.post("/test", async (request, reply) => {
-  const twilio = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  const twilio = new Twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
   await twilio.calls.create({
     from: "+12294587881",
     to: "+918877645613",
@@ -170,7 +173,12 @@ fastify.post("/test", async (request, reply) => {
   reply.send({ message: "Call initiated!" });
 });
 fastify.get("/", async (request, reply) => {
-  reply.send({ message: "Twilio Media Stream Server is running!" });
+  try {
+    console.log("Sending the reply");
+    reply.send({ message: "Twilio Media Stream Server is running!" });
+  } catch (error) {
+    console.log("Got error here while fetching the get /", error);
+  }
 });
 
 // Route for Twilio to handle incoming calls
