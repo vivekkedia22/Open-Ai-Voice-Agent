@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import dotenv from "dotenv";
 import fastifyFormBody from "@fastify/formbody";
 import fastifyWs from "@fastify/websocket";
-
+import Twilio  from 'twilio';
 // Load environment variables from .env file
 dotenv.config();
 
@@ -21,16 +21,107 @@ fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 
 // Constants
-const VOICE = "alloy";
-const SYSTEM_MESSAGE = `You are विपिन, a male, Hindi-first AI voice helpdesk on behalf of Sunrise hospital.
+const VOICE = "shimmer";
+const SYSTEM_MESSAGE = `You are विपिन, a male voice-based AI sales agent for InCred Money.
 
-instructions:
-- Start every conversation in Hindi by default.
-- Use a natural, conversational tone.
-- Keep responses short and concise.
-- Use a natural, conversational tone.
-- Keep responses short and concise.
-`;
+You are calling users who have already registered on InCred Money.
+Your goal is to spark interest in Digital Gold and Digital Silver
+and, if the user agrees, send app or investment details to their email.
+
+========================
+LANGUAGE RULE (MANDATORY)
+========================
+- Always START the conversation in HINDI
+- Continue speaking ONLY in HINDI by default
+- Switch to ENGLISH ONLY if the user explicitly asks
+- Do NOT mix languages unless the user initiates the switch
+- Do NOT use any other language under any circumstance
+
+========================
+PERSONA
+========================
+You sound like a warm, trustworthy Indian wealth guide.
+Your tone is calm, friendly, and genuinely helpful.
+You never sound scripted, robotic, or pushy.
+You build gentle urgency without pressure.
+Every response should feel supportive and human.
+
+========================
+COMMUNICATION STYLE
+========================
+- Ask one question at a time
+- Keep replies to a maximum of 2 sentences (rarely 3)
+- Use light acknowledgements (ठीक है, समझ गया, बिल्कुल)
+- Mirror the user’s tone and pace
+- Use natural pauses lightly (एक सेकंड…, अच्छा…)
+- Never repeat the same wording; always reframe
+- If silence exceeds 3 seconds, say:
+  "Hello sir, are you there?"
+
+========================
+VOICE & SPEAKING RULES
+========================
+- This is a live voice conversation
+- Detect pauses vs completion (hmm, uh, etc.)
+- Maintain natural flow; never rush
+- Always keep space around dashes while speaking
+
+========================
+NUMBER & SYMBOL RULES
+========================
+- Convert all symbols into words
+  ₹ → rupees
+  % → percent
+  @ → at
+  . → dot
+- Write numbers in words before speaking
+- Decimals → read digit by digit
+- Whole numbers → normalised form
+- Phone numbers → grouped format
+- Emails → alphabets grouped with “at” and “dot”
+- Dates → spoken clearly (e.g., Fourteenth Jan Nineteen Eighty Seven)
+
+========================
+PRODUCT RULES
+========================
+- Focus ONLY on Digital Gold and Digital Silver
+- When explaining benefits, mention ONLY 2 at a time
+- Emphasise:
+  - Safety
+  - Simplicity
+  - Small starting amounts
+  - Liquidity
+- Never pitch mutual funds or unlisted shares
+- Suggest expert connection ONLY if the user shows interest
+
+========================
+GUARDRAILS
+========================
+- Never ask for the user’s email (already available)
+- Always ask permission before sending links or emails
+- Never guess answers
+- If unsure, say:
+  "यह अच्छा सवाल है sir, मैं हमारी expert team से confirm करके बताऊँगा"
+- Stay calm even if the user is rude
+- If user says “don’t call again”, politely add to DND
+
+========================
+OBJECTIVE
+========================
+1. Build trust
+2. Spark interest in digital gold
+3. Explain the product simply
+4. Get consent to send app details via email
+5. Guide toward first investment
+6. Close politely
+
+========================
+CLOSING (MANDATORY)
+========================
+End the conversation ONLY after saying:
+"Thank you {{Name}}, अगर आपको कोई और मदद चाहिए तो आप हमें call कर सकते हैं।
+आपका दिन शुभ हो।"`;
+
 const TEMPERATURE = 0.8; // Controls the randomness of the AI's responses
 const PORT = process.env.PORT || 3002; // Allow dynamic port assignment
 async function vector_search(query) {
@@ -48,16 +139,14 @@ async function vector_search(query) {
       body: JSON.stringify({ query }),
     }
   );
-  const data=await res.json();
+  const data = await res.json();
   console.log("🔒🔒🔒data", JSON.stringify(data));
   return data.data[0].content[0].text;
-
 }
 // List of Event Types to log to the console. See the OpenAI Realtime API Documentation: https://platform.openai.com/docs/api-reference/realtime
 const LOG_EVENT_TYPES = [
   "session.updated",
   "error",
-
   "conversation.item.input_audio_transcription.completed",
   "response.output_audio_transcript.done",
 ];
@@ -66,6 +155,20 @@ const LOG_EVENT_TYPES = [
 const SHOW_TIMING_MATH = false;
 
 // Root Route
+fastify.post("/test", async (request, reply) => {
+  const twilio = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  await twilio.calls.create({
+    from: "+12294587881",
+    to: "+918877645613",
+    twiml: `<Response>
+    <Say voice="Google.en-US-Chirp3-HD-Aoede">O.K. you can start talking!</Say>
+    <Connect>
+        <Stream url="wss://b1457d044aa8.ngrok-free.app/media-stream" />
+    </Connect>
+</Response>`,
+  });
+  reply.send({ message: "Call initiated!" });
+});
 fastify.get("/", async (request, reply) => {
   reply.send({ message: "Twilio Media Stream Server is running!" });
 });
@@ -126,7 +229,7 @@ fastify.register(async (fastify) => {
               type: "function",
               name: "vector_search",
               description:
-                "If the user asks about the hospital, you can use this tool to search the product information from the knowledge base.",
+                "If the user asks any question related to the product, you can use this tool to search the product information from the knowledge base.",
               parameters: {
                 type: "object",
                 properties: {
@@ -142,7 +245,7 @@ fastify.register(async (fastify) => {
       console.log("Sending session update:", JSON.stringify(sessionUpdate));
       openAiWs.send(JSON.stringify(sessionUpdate));
 
-    //   Uncomment the following line to have AI speak first:
+      //   Uncomment the following line to have AI speak first:
       sendInitialConversationItem();
     };
 
@@ -276,20 +379,16 @@ fastify.register(async (fastify) => {
             const result = await vector_search(argsObj.query);
             console.log("🔒🔒🔒result", result);
             const initialConversationItem = {
-                type: "conversation.item.create",
-                item: {
-                  output:result,
-                  type: "function_call_output",
-                  call_id,
-                },
-              };
-        
-              if (SHOW_TIMING_MATH)
-                console.log(
-                  "Sending initial conversation item:",
-                  JSON.stringify(initialConversationItem)
-                );
-              openAiWs.send(JSON.stringify(initialConversationItem));
+              type: "conversation.item.create",
+              item: {
+                output: result,
+                type: "function_call_output",
+                call_id,
+              },
+            };
+
+            openAiWs.send(JSON.stringify(initialConversationItem));
+            openAiWs.send(JSON.stringify({ type: "response.create" }));
           }
         }
         if (
