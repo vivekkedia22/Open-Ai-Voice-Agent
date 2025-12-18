@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import dotenv from "dotenv";
 import fastifyFormBody from "@fastify/formbody";
 import fastifyWs from "@fastify/websocket";
-import Twilio  from 'twilio';
+import Twilio from "twilio";
 // Load environment variables from .env file
 dotenv.config();
 
@@ -171,7 +171,12 @@ fastify.post("/test", async (request, reply) => {
   reply.send({ message: "Call initiated!" });
 });
 fastify.get("/", async (request, reply) => {
-  reply.send({ message: "Twilio Media Stream Server is running!" });
+  try {
+    console.log("Sending the reply");
+    reply.send({ message: "Twilio Media Stream Server is running!" });
+  } catch (error) {
+    console.log("Got error here while fetching the get /", error);
+  }
 });
 
 // Route for Twilio to handle incoming calls
@@ -468,7 +473,7 @@ fastify.register(async (fastify) => {
   });
 });
 
-fastify.listen({ port: PORT }, (err) => {
+fastify.listen({ port: PORT, host: "0.0.0.0" }, (err) => {
   if (err) {
     console.error(err);
     process.exit(1);
