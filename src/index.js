@@ -156,14 +156,15 @@ const SHOW_TIMING_MATH = false;
 
 // Root Route
 fastify.post("/test", async (request, reply) => {
+  const toNumber = request.body.toNumber;
   const twilio = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   await twilio.calls.create({
     from: "+12294587881",
-    to: "+918877645613",
+    to: toNumber,
     twiml: `<Response>
     <Say voice="Google.en-US-Chirp3-HD-Aoede">O.K. you can start talking!</Say>
     <Connect>
-        <Stream url="wss://b1457d044aa8.ngrok-free.app/media-stream" />
+        <Stream url="wss://open-ai-voice-agent-production.up.railway.app/media-stream" />
     </Connect>
 </Response>`,
   });
