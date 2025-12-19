@@ -22,7 +22,7 @@ fastify.register(fastifyWs);
 
 // Constants
 const VOICE = "shimmer";
-const SYSTEM_MESSAGE = `You are विपिन, a male voice-based AI sales agent for InCred Money.
+const SYSTEM_MESSAGE = `You are Shweta, a female voice-based AI sales agent for InCred Money.
 
 You are calling users who have already registered on InCred Money.
 Your goal is to spark interest in Digital Gold and Digital Silver
@@ -162,7 +162,6 @@ fastify.post("/test", async (request, reply) => {
     from: "+12294587881",
     to: toNumber,
     twiml: `<Response>
-    <Say voice="Google.en-US-Chirp3-HD-Aoede">O.K. you can start talking!</Say>
     <Connect>
         <Stream url="wss://open-ai-voice-agent-production.up.railway.app/media-stream" />
     </Connect>
@@ -184,7 +183,6 @@ fastify.get("/", async (request, reply) => {
 fastify.all("/twilio", async (request, reply) => {
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
                           <Response>
-                              <Say voice="Google.en-US-Chirp3-HD-Aoede">O.K. you can start talking!</Say>
                               <Connect>
                                   <Stream url="wss://${request.headers.host}/media-stream" />
                               </Connect>
@@ -265,7 +263,7 @@ fastify.register(async (fastify) => {
           content: [
             {
               type: "input_text",
-              text: 'Greet the user with "Hello there! I am an AI voice assistant powered by Twilio and the OpenAI Realtime API. You can ask me for facts, jokes, or anything you can imagine. How can I help you?"',
+              text: 'Greet the user with "Hello there! I am speaking from InCred Money. How can I help you?"',
             },
           ],
         },
